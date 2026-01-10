@@ -1,0 +1,5 @@
+{
+  "name": "ZenCheck AI",
+  "description": "A sophisticated checklist application that leverages Gemini AI to generate smart task lists for any goal or project, featuring a sleek, modern UI with real-time progress tracking.",
+  "requestFramePermissions": []
+}
