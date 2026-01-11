@@ -38,7 +38,6 @@ const App: React.FC = () => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [newTaskText, setNewTaskText] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isRoadmapExpanded, setIsRoadmapExpanded] = useState(true);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
@@ -70,13 +69,11 @@ const App: React.FC = () => {
         let groupUpdated = false;
         const newTasks = group.tasks.map(task => {
           if (!task.completed && task.notificationTime === nowStr) {
-            // Trigger Notification
             new Notification("ZenCheck 알림", {
               body: `할 일: ${task.text}`,
               icon: "https://cdn-icons-png.flaticon.com/512/3119/3119338.png"
             });
 
-            // Handle Repetition
             if (task.repeatInterval && task.repeatInterval > 0 && (task.remindersSent || 0) < (task.repeatCount || 0)) {
               groupUpdated = true;
               updated = true;
@@ -84,13 +81,8 @@ const App: React.FC = () => {
               nextTime.setHours(nextTime.getHours() + task.repeatInterval);
               const nextTimeStr = nextTime.getHours().toString().padStart(2, '0') + ':' + nextTime.getMinutes().toString().padStart(2, '0');
               
-              return {
-                ...task,
-                notificationTime: nextTimeStr,
-                remindersSent: (task.remindersSent || 0) + 1
-              };
+              return { ...task, notificationTime: nextTimeStr, remindersSent: (task.remindersSent || 0) + 1 };
             } else {
-              // Clear notification if no more repeats
               groupUpdated = true;
               updated = true;
               return { ...task, notificationTime: undefined };
@@ -102,7 +94,7 @@ const App: React.FC = () => {
       });
 
       if (updated) setGroups(newGroups);
-    }, 60000); // Check every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [groups]);
@@ -188,7 +180,6 @@ const App: React.FC = () => {
     }));
   };
 
-  // Fix: Added updateSketchNotes function
   const updateSketchNotes = (notes: string) => {
     if (!activeGroupId) return;
     setGroups(prev => prev.map(g => g.id === activeGroupId ? { ...g, notes } : g));
@@ -207,7 +198,6 @@ const App: React.FC = () => {
       );
       if (viewMode === 'sketch' && activeGroupId) {
         setGroups(prev => prev.map(g => g.id === activeGroupId ? { ...g, tasks: [...tasks, ...g.tasks] } : g));
-        setIsRoadmapExpanded(true);
       } else {
         const newId = generateId();
         setGroups(prev => [{ id: newId, title: result.title, tasks, color: COLORS[Math.floor(Math.random() * COLORS.length)], createdAt: Date.now(), type: 'standard' }, ...prev]);
@@ -257,7 +247,6 @@ const App: React.FC = () => {
         </div>
 
         <nav className="flex-1 px-4 space-y-6 overflow-y-auto custom-scrollbar pb-10">
-          {/* Menu Sections (Same as previous but with handleCreate functions) */}
           <div className="space-y-1">
             <h3 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest px-4 mb-2">메뉴</h3>
             <button onClick={() => switchView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${viewMode === 'dashboard' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}>📊 대시보드</button>
@@ -324,7 +313,6 @@ const App: React.FC = () => {
             {viewMode === 'calendar' && activeGroup && (
               <div className="view-transition flex flex-col lg:flex-row gap-6 lg:gap-8 h-full min-h-[500px]">
                 <div className="bg-white dark:bg-slate-900 p-6 rounded-[28px] border border-gray-100 dark:border-slate-800 shadow-sm lg:w-80 h-fit">
-                   {/* Calendar UI (Same as previous) */}
                    <div className="flex justify-between items-center mb-6 px-2">
                     <button onClick={() => navigateMonth(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full text-gray-400 transition-colors">◀</button>
                     <h4 className="font-black text-lg dark:text-white">{daysInMonth.year}년 {daysInMonth.month + 1}월</h4>
@@ -353,11 +341,7 @@ const App: React.FC = () => {
                    <div className="flex-1 overflow-y-auto custom-scrollbar mb-6 pr-2">
                       <div className="space-y-3">
                         {activeGroup.tasks.map(t => (
-                          <TaskItem key={t.id} task={t} color="indigo" 
-                            onToggle={(tid) => handleToggleTask(activeGroup.id, tid)} 
-                            onDelete={(tid) => handleDeleteTask(activeGroup.id, tid)} 
-                            onUpdateNotif={(tid, time, interval, count) => updateTaskNotification(activeGroup.id, tid, time, interval, count)}
-                          />
+                          <TaskItem key={t.id} task={t} color="indigo" onToggle={(tid) => handleToggleTask(activeGroup.id, tid)} onDelete={(tid) => handleDeleteTask(activeGroup.id, tid)} onUpdateNotif={(tid, time, interval, count) => updateTaskNotification(activeGroup.id, tid, time, interval, count)} />
                         ))}
                       </div>
                    </div>
@@ -376,12 +360,7 @@ const App: React.FC = () => {
                   <ProgressBar progress={(activeGroup.tasks.filter(t => t.completed).length / (activeGroup.tasks.length || 1)) * 100} color={activeGroup.color} />
                 </div>
                 {viewMode === 'sketch' && (
-                   <textarea 
-                    value={activeGroup.notes || ''} 
-                    onChange={(e) => updateSketchNotes(e.target.value)}
-                    placeholder="생각나는 대로 브레인스토밍 하세요..."
-                    className="w-full min-h-[150px] p-6 bg-amber-50/20 dark:bg-amber-900/10 rounded-2xl border-none focus:ring-4 focus:ring-amber-100 outline-none font-medium text-lg text-gray-700 dark:text-slate-300 mb-6"
-                  />
+                   <textarea value={activeGroup.notes || ''} onChange={(e) => updateSketchNotes(e.target.value)} placeholder="생각나는 대로 브레인스토밍 하세요..." className="w-full min-h-[150px] p-6 bg-amber-50/20 dark:bg-amber-900/10 rounded-2xl border-none focus:ring-4 focus:ring-amber-100 outline-none font-medium text-lg text-gray-700 dark:text-slate-300 mb-6" />
                 )}
                 <form onSubmit={addTask} className="mb-6 relative">
                   <input value={newTaskText} onChange={e => setNewTaskText(e.target.value)} placeholder="새 항목 추가..." className="w-full p-5 bg-gray-50 dark:bg-slate-800 rounded-[24px] border-none font-bold text-lg outline-none dark:text-white" />
@@ -389,17 +368,12 @@ const App: React.FC = () => {
                 </form>
                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2 pb-10">
                   {activeGroup.tasks.map(t => (
-                    <TaskItem key={t.id} task={t} color={activeGroup.color} 
-                      onToggle={(tid) => handleToggleTask(activeGroup.id, tid)} 
-                      onDelete={(tid) => handleDeleteTask(activeGroup.id, tid)} 
-                      onUpdateNotif={(tid, time, interval, count) => updateTaskNotification(activeGroup.id, tid, time, interval, count)}
-                    />
+                    <TaskItem key={t.id} task={t} color={activeGroup.color} onToggle={(tid) => handleToggleTask(activeGroup.id, tid)} onDelete={(tid) => handleDeleteTask(activeGroup.id, tid)} onUpdateNotif={(tid, time, interval, count) => updateTaskNotification(activeGroup.id, tid, time, interval, count)} />
                   ))}
                   {activeGroup.tasks.length === 0 && <div className="py-20 text-center text-gray-300 dark:text-slate-700 font-bold">목록이 비어있습니다.</div>}
                 </div>
               </div>
             )}
-
           </div>
         </div>
       </main>
