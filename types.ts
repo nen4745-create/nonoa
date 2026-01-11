@@ -5,6 +5,12 @@ export interface Task {
   completed: boolean;
   category: string;
   createdAt: number;
+  date?: string; // YYYY-MM-DD for calendar tasks
+  // Notification features
+  notificationTime?: string; // ISO String or HH:mm
+  repeatInterval?: number;   // In hours
+  repeatCount?: number;      // Total number of repeats
+  remindersSent?: number;    // Counter for sent notifications
 }
 
 export type GroupColor = 'indigo' | 'rose' | 'emerald' | 'amber' | 'violet' | 'slate' | 'cyan';
@@ -15,6 +21,8 @@ export interface ChecklistGroup {
   tasks: Task[];
   color: GroupColor;
   createdAt: number;
+  type?: 'standard' | 'daily' | 'calendar' | 'sketch';
+  notes?: string; // For free-form sketching
 }
 
 export interface WidgetConfig {
@@ -24,4 +32,10 @@ export interface WidgetConfig {
   icon: string;
 }
 
-export type ThemeType = 'light' | 'dark';
+export interface DailyHistory {
+  [date: string]: {
+    [taskId: string]: boolean;
+  };
+}
+
+export type ViewMode = 'dashboard' | 'daily' | 'calendar' | 'group' | 'sketch';

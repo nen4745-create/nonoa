@@ -1,13 +1,9 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const API_KEY = process.env.API_KEY || '';
-
-const getAI = () => new GoogleGenAI({ apiKey: API_KEY });
-
 export const generateChecklist = async (prompt: string) => {
-  if (!API_KEY) throw new Error("API Key is missing.");
-  const ai = getAI();
+  // Directly use process.env.API_KEY as per guidelines
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -38,17 +34,4 @@ export const generateChecklist = async (prompt: string) => {
   });
 
   return JSON.parse(response.text);
-};
-
-export const getMotivationalQuote = async (progress: number, taskCount: number) => {
-  if (!API_KEY) return "오늘도 힘내세요!";
-  const ai = getAI();
-  
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `사용자의 현재 할 일 진행률은 ${progress}% 이며 총 ${taskCount}개의 할 일이 있습니다. 
-    이 사용자를 격려하고 동기를 부여할 수 있는 짧고 강력한 한 문장의 응원 메시지를 한국어로 작성해주세요.`,
-  });
-
-  return response.text?.trim() || "오늘도 멋진 하루 되세요!";
 };

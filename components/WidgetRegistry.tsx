@@ -1,83 +1,95 @@
 
-import React, { useState, useEffect } from 'react';
-import { ChecklistGroup } from '../types';
-import { getMotivationalQuote } from '../services/geminiService';
+import React, { useState } from 'react';
+import { ChecklistGroup, GroupColor, DailyHistory } from '../types';
 
 interface WidgetProps {
   groups: ChecklistGroup[];
   activeGroup: ChecklistGroup | undefined;
+  onToggleTask: (groupId: string, taskId: string) => void;
+  history: DailyHistory;
 }
 
-// 1. Stats Widget
-const StatsWidget: React.FC<WidgetProps> = ({ groups }) => {
-  const allTasks = groups.flatMap(g => g.tasks);
-  const completed = allTasks.filter(t => t.completed).length;
-  const total = allTasks.length;
+// 1. Enhanced Stats Widget with Tabs
+const StatsWidget: React.FC<WidgetProps> = ({ groups, history }) => {
+  const [tab, setTab] = useState<'day' | 'month' | 'year'>('day');
+  const todayStr = new Date().toISOString().split('T')[0];
   
+  // Logic to calculate stats based on tab
+  const getStats = () => {
+    const allTasks = groups.flatMap(g => g.tasks);
+    if (tab === 'day') {
+      const completed = allTasks.filter(t => t.completed).length;
+      return { val: completed, total: allTasks.length };
+    } else if (tab === 'month') {
+      const monthPrefix = todayStr.substring(0, 7);
+      const monthDays = Object.keys(history).filter(d => d.startsWith(monthPrefix));
+      let totalCompleted = 0;
+      monthDays.forEach(d => {
+        totalCompleted += Object.values(history[d]).filter(v => v).length;
+      });
+      return { val: totalCompleted, label: '이번 달 누적' };
+    } else {
+      const yearPrefix = todayStr.substring(0, 4);
+      const yearDays = Object.keys(history).filter(d => d.startsWith(yearPrefix));
+      return { val: yearDays.length, label: '실천한 일수' };
+    }
+  };
+
+  const stats = getStats();
+  const percentage = (stats as any).total ? Math.round(((stats as any).val / (stats as any).total) * 100) : 0;
+
   return (
-    <div className="p-5 bg-white rounded-2xl border border-gray-100 shadow-sm h-full flex flex-col justify-between">
-      <div className="flex justify-between items-start">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">전체 통계</h3>
-        <span className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-        </span>
+    <div className="p-5 bg-white dark:bg-slate-900 rounded-[24px] border border-gray-100 dark:border-slate-800 shadow-sm h-full flex flex-col hover:shadow-md transition-all">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          {['day', 'month', 'year'].map((t) => (
+            <button 
+              key={t}
+              onClick={() => setTab(t as any)}
+              className={`text-[10px] font-black uppercase px-2 py-1 rounded-md transition-all ${tab === t ? 'bg-indigo-600 text-white' : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
       </div>
-      <div>
-        <div className="text-3xl font-bold text-gray-800">{completed}/{total}</div>
-        <p className="text-xs text-gray-400 mt-1">완료된 항목</p>
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="flex items-baseline gap-2">
+          <span className="text-4xl font-black text-gray-900 dark:text-white">{(stats as any).val}</span>
+          <span className="text-sm font-bold text-gray-400 dark:text-slate-500">
+            {(stats as any).total ? `/ ${(stats as any).total}` : (stats as any).label}
+          </span>
+        </div>
+        {tab === 'day' && (
+          <div className="w-full bg-gray-50 dark:bg-slate-800 h-2 rounded-full mt-4 overflow-hidden">
+            <div className={`bg-indigo-500 h-full transition-all duration-700`} style={{ width: `${percentage}%` }}></div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-// 2. AI Motivator Widget
-const AIQuoteWidget: React.FC<WidgetProps> = ({ groups }) => {
-  const [quote, setQuote] = useState('생각 중...');
-  
-  useEffect(() => {
-    const fetchQuote = async () => {
-      const allTasks = groups.flatMap(g => g.tasks);
-      const progress = allTasks.length > 0 ? (allTasks.filter(t => t.completed).length / allTasks.length) * 100 : 0;
-      const q = await getMotivationalQuote(Math.round(progress), allTasks.length);
-      setQuote(q);
-    };
-    fetchQuote();
-  }, [groups]);
-
+// 2. Quick Checklist Widget
+const QuickCheckWidget: React.FC<WidgetProps> = ({ activeGroup, onToggleTask }) => {
+  const pendingTasks = activeGroup?.tasks.filter(t => !t.completed).slice(0, 3) || [];
   return (
-    <div className="p-5 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl text-white shadow-lg h-full flex flex-col justify-between">
-      <div className="flex justify-between items-start">
-        <h3 className="text-sm font-medium opacity-80">AI의 응원</h3>
-        <span className="p-1.5 bg-white/20 rounded-lg">✨</span>
-      </div>
-      <p className="text-lg font-medium leading-tight">"{quote}"</p>
-    </div>
-  );
-};
-
-// 3. Next Focus Widget
-const FocusWidget: React.FC<WidgetProps> = ({ activeGroup }) => {
-  const nextTask = activeGroup?.tasks.find(t => !t.completed);
-  
-  return (
-    <div className="p-5 bg-white rounded-2xl border border-gray-100 shadow-sm h-full flex flex-col justify-between">
-      <div className="flex justify-between items-start">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">다음 목표</h3>
-        <span className="p-2 bg-orange-50 text-orange-600 rounded-lg">🎯</span>
-      </div>
-      <div>
-        <p className="text-sm text-gray-700 font-medium truncate">
-          {nextTask ? nextTask.text : "모든 일을 마쳤습니다!"}
-        </p>
-        <p className="text-xs text-gray-400 mt-1">{activeGroup?.title || "선택된 리스트 없음"}</p>
+    <div className="p-6 bg-white dark:bg-slate-900 rounded-[24px] border border-gray-100 dark:border-slate-800 shadow-sm h-full flex flex-col transition-all">
+      <h3 className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-4">빠른 체크</h3>
+      <div className="space-y-2">
+        {pendingTasks.map(task => (
+          <div key={task.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors" onClick={() => activeGroup && onToggleTask(activeGroup.id, task.id)}>
+            <div className="w-5 h-5 rounded border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"></div>
+            <span className="text-sm font-bold text-gray-700 dark:text-slate-300 truncate">{task.text}</span>
+          </div>
+        ))}
+        {pendingTasks.length === 0 && <p className="text-xs text-gray-300 dark:text-slate-600 py-4">모든 할 일을 마쳤습니다!</p>}
       </div>
     </div>
   );
 };
 
-// EXPORT REGISTRY: To add a widget, just add a component above and add it to this array!
 export const WIDGET_REGISTRY = [
-  { id: 'stats', title: '통계', component: StatsWidget, icon: '📊', defaultEnabled: true },
-  { id: 'quote', title: 'AI 동기부여', component: AIQuoteWidget, icon: '✨', defaultEnabled: true },
-  { id: 'focus', title: '우선순위', component: FocusWidget, icon: '🎯', defaultEnabled: true },
+  { id: 'stats', title: '성과 분석', component: StatsWidget, icon: '📊', defaultEnabled: true },
+  { id: 'focus', title: '빠른 할일', component: QuickCheckWidget, icon: '✅', defaultEnabled: true },
 ];

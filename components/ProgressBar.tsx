@@ -19,7 +19,7 @@ const colorMap: Record<string, string> = {
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({ progress, color = 'indigo' }) => {
   return (
-    <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
+    <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden shadow-inner transition-colors duration-300">
       <div 
         className={`${colorMap[color]} h-full rounded-full transition-all duration-700 ease-out shadow-sm`}
         style={{ width: `${progress}%` }}
